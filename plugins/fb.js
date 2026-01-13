@@ -11,7 +11,7 @@ cmd(
     filename: __filename,
   },
   async (
-    danuwa,
+    ishan,
     mek,
     m,
     {
@@ -59,22 +59,22 @@ cmd(
 
       const desc = `
 Your fb video
-👻 *Title*: ${title || "Unknown"}
-👻 *Quality*: ${qualityText}
+💙 *Title*: ${title || "Unknown"}
+❤️ *Quality*: ${qualityText}
 `;
 
-      await danuwa.sendMessage(
+      await ishan.sendMessage(
         from,
         {
           image: {
-            url: "https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/fbdownloader.png?raw=true",
+            url: "https://files.catbox.moe/d0z6ym.JPG",
           },
           caption: desc,
         },
         { quoted: mek }
       );
 
-      await danuwa.sendMessage(
+      await ishan.sendMessage(
         from,
         {
           video: { url: bestQualityUrl },
@@ -83,7 +83,7 @@ Your fb video
         { quoted: mek }
       );
 
-      return reply("Thank you for using DANUWA-MD");
+      return reply("Thank you ISHAN-MD");
     } catch (e) {
       console.error(e);
       reply(`*Error:* ${e.message || e}`);
