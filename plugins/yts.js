@@ -11,7 +11,7 @@ cmd(
     filename: __filename,
   },
   async (
-    danuwa,
+    ishan,
     mek,
     m,
     {
@@ -24,7 +24,7 @@ cmd(
     try {
       if (!q) return reply("*Please provide a search query!* 🔍");
 
-      reply("*Searching YouTube for you...* ⌛");
+      reply("*Searching YouTube for you...* 💬");
 
       const search = await yts(q);
 
@@ -44,11 +44,11 @@ Your youtube search results
 ${formattedResults}
    `;
 
-      await danuwa.sendMessage(
+      await ishan.sendMessage(
         from,
         {
           image: {
-            url: "https://github.com/DANUWA-MD/DANUWA-MD/blob/main/images/yts.png?raw=true",
+            url: "https://files.catbox.moe/d0z6ym.JPG",
           },
           caption,
         },
