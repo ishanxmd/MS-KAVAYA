@@ -21,7 +21,7 @@ async function getYoutube(query) {
 cmd(
   {
     pattern: "ytmp3",
-    alias: ["yta", "song"],
+    alias: ["mp3", "song"],
     desc: "Download YouTube MP3 by name or link",
     category: "download",
     filename: __filename,
@@ -73,7 +73,7 @@ cmd(
 cmd(
   {
     pattern: "ytmp4",
-    alias: ["ytv", "video"],
+    alias: ["mp4", "video"],
     desc: "Download YouTube MP4 by name or link",
     category: "download",
     filename: __filename,
@@ -118,7 +118,7 @@ await bot.sendMessage(
     video: { url: data.url },
     mimetype: "video/mp4",
     fileName: data.filename || "youtube_video.mp4",
-    caption: "🎬 YouTube video",
+    caption: "🎬> ©𝙳𝚎𝚟𝚎𝚕𝚘𝚙𝚎𝚛 𝚋𝚢 𝙸𝚂𝙷𝙰𝙽-𝚇",
     gifPlayback: false,
   },
   { quoted: mek }
