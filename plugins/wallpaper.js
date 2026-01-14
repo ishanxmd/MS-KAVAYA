@@ -4,8 +4,8 @@ const axios = require("axios");
 
 cmd(
   {
-    pattern: "image",
-    alias: ["wallpaper"],
+    pattern: "wall",
+    alias: ["wallpaper","image"],
     react: "🖼️",
     desc: "Download HD Wallpapers",
     category: "download",
