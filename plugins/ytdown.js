@@ -45,7 +45,7 @@ cmd(
         from,
         {
           image: { url: video.thumbnail },
-          caption:"> ©𝙳𝚎𝚟𝚎𝚕𝚘𝚙𝚎𝚛 𝚋𝚢 𝙸𝚂𝙷𝙰𝙽-𝚇",
+          caption,
         },
         { quoted: mek }
       );
