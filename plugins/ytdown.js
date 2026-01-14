@@ -1,6 +1,6 @@
 
 const { cmd } = require("../command");
-const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore");
+const { song, video, tiktok } = require("sadaslk-dlcore");
 const yts = require("yt-search");
 
 
@@ -20,8 +20,8 @@ async function getYoutube(query) {
 
 cmd(
   {
-    pattern: "ytmp3",
-    alias: ["yta", "song"],
+    pattern: "song",
+    alias: ["yta", "ytmp3"],
     desc: "Download YouTube MP3 by name or link",
     category: "download",
     filename: __filename,
@@ -72,8 +72,8 @@ cmd(
 
 cmd(
   {
-    pattern: "ytmp4",
-    alias: ["ytv", "video"],
+    pattern: "song",
+    alias: ["ytv", "ytmp4"],
     desc: "Download YouTube MP4 by name or link",
     category: "download",
     filename: __filename,
@@ -107,7 +107,7 @@ cmd(
 
       const data = await ytmp4(video.url, {
         format: "mp4",
-        videoQuality: "360",
+        videoQuality: "720",
       });
 
       if (!data?.url) return reply("❌ Failed to download video");
