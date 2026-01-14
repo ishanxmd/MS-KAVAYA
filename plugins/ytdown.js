@@ -20,8 +20,8 @@ async function getYoutube(query) {
 
 cmd(
   {
-    pattern: "song",
-    alias: ["yta", "ytmp3"],
+    pattern: "ytmp3",
+    alias: ["yta", "song"],
     desc: "Download YouTube MP3 by name or link",
     category: "download",
     filename: __filename,
@@ -72,8 +72,8 @@ cmd(
 
 cmd(
   {
-    pattern: "song",
-    alias: ["ytv", "ytmp4"],
+    pattern: "ytmp4",
+    alias: ["ytv", "video"],
     desc: "Download YouTube MP4 by name or link",
     category: "download",
     filename: __filename,
