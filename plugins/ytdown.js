@@ -1,103 +1,169 @@
 const { cmd } = require("../command");
+const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore");
 const yts = require("yt-search");
-const ytdl = require("ytdl-core");
 
-const pendingSearch = {};
-const pendingType = {};
 
-// ================= SEARCH COMMAND =================
-cmd({
-    pattern: "play",
-    desc: "Search song or video",
+async function getYoutube(query) {
+  const isUrl = /(youtube\.com|youtu\.be)/i.test(query);
+  if (isUrl) {
+    const id = query.split("v=")[1] || query.split("/").pop();
+    const info = await yts({ videoId: id });
+    return info;
+  }
+
+  const search = await yts(query);
+  if (!search.videos.length) return null;
+  return search.videos[0];
+}
+
+
+cmd(
+  {
+    pattern: "ytmp3",
+    alias: ["mp3", "song"],
+    desc: "Download YouTube MP3 by name or link",
     category: "download",
-    react: "🎵",
-    filename: __filename
-}, async (conn, mek, m, {
-    from, args, sender
-}) => {
-    if (!args[0]) {
-        return conn.sendMessage(from, { text: "❌ Song / Video name එකක් දෙන්න" }, { quoted: mek });
+    filename: __filename,
+  },
+  async (bot, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("🎵 Send song name or YouTube link");
+
+      reply("🔎 Searching YouTube...");
+      const video = await getYoutube(q);
+      if (!video) return reply("❌ No results found");
+
+      const caption =
+        `🎵 *${video.title}*\n\n` +
+        `👤 Channel: ${video.author.name}\n` +
+        `⏱ Duration: ${video.timestamp}\n` +
+        `👀 Views: ${video.views.toLocaleString()}\n` +
+        `🔗 ${video.url}`;
+
+      await bot.sendMessage(
+        from,
+        {
+          image: { url: video.thumbnail },
+          caption,
+        },
+        { quoted: mek }
+      );
+
+      reply("⬇️ Downloading MP3...");
+
+      const data = await ytmp3(video.url);
+      if (!data?.url) return reply("❌ Failed to download MP3");
+
+      await bot.sendMessage(
+        from,
+        {
+          audio: { url: data.url },
+          mimetype: "audio/mpeg",
+        },
+        { quoted: mek }
+      );
+    } catch (e) {
+      console.log("YTMP3 ERROR:", e);
+      reply("❌ Error while downloading MP3");
     }
+  }
+);
 
-    const query = args.join(" ");
-    const res = await yts(query);
+cmd(
+  {
+    pattern: "ytmp4",
+    alias: ["mp4", "video"],
+    desc: "Download YouTube MP4 by name or link",
+    category: "download",
+    filename: __filename,
+  },
+  async (bot, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("🎬 Send video name or YouTube link");
 
-    if (!res.videos.length) {
-        return conn.sendMessage(from, { text: "❌ Result not found" }, { quoted: mek });
+      reply("🔎 Searching YouTube...");
+      const video = await getYoutube(q);
+      if (!video) return reply("❌ No results found");
+
+      const caption =
+        `🎬 *${video.title}*\n\n` +
+        `👤 Channel: ${video.author.name}\n` +
+        `⏱ Duration: ${video.timestamp}\n` +
+        `👀 Views: ${video.views.toLocaleString()}\n` +
+        `📅 Uploaded: ${video.ago}\n` +
+        `🔗 ${video.url}`;
+
+      await bot.sendMessage(
+        from,
+        {
+          image: { url: video.thumbnail },
+          caption,
+        },
+        { quoted: mek }
+      );
+
+      reply("⬇️ Downloading video...");
+
+      const data = await ytmp4(video.url, {
+        format: "mp4",
+        videoQuality: "720",
+      });
+
+      if (!data?.url) return reply("❌ Failed to download video");
+
+await bot.sendMessage(
+  from,
+  {
+    video: { url: data.url },
+    mimetype: "video/mp4",
+    fileName: data.filename || "youtube_video.mp4",
+    caption: "🎬> ©𝙳𝚎𝚟𝚎𝚕𝚘𝚙𝚎𝚛 𝚋𝚢 𝙸𝚂𝙷𝙰𝙽-𝚇",
+    gifPlayback: false,
+  },
+  { quoted: mek }
+);
+    } catch (e) {
+      console.log("YTMP4 ERROR:", e);
+      reply("❌ Error while downloading video");
     }
+  }
+);
 
-    const results = res.videos.slice(0, 10);
-    pendingSearch[sender] = results;
 
-    let list = `🎶 *Search Results*\n\n`;
-    results.forEach((v, i) => {
-        list += `${i + 1}. ${v.title}\n⏱ ${v.timestamp}\n\n`;
-    });
+cmd(
+  {
+    pattern: "tiktok",
+    alias: ["tt"],
+    desc: "Download TikTok video",
+    category: "download",
+    filename: __filename,
+  },
+  async (bot, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("📱 Send TikTok link");
 
-    list += `🔢 Reply with number (1-${results.length})`;
+      reply("⬇️ Downloading TikTok video...");
 
-    await conn.sendMessage(from, { text: list }, { quoted: mek });
-});
+      const data = await tiktok(q);
+      if (!data?.no_watermark)
+        return reply("❌ Failed to download TikTok video");
 
-// ================= REPLY HANDLER =================
-cmd({
-    on: "text"
-}, async (conn, mek, m, {
-    from, body, sender
-}) => {
+      const caption =
+        `🎵 *${data.title || "TikTok Video"}*\n\n` +
+        `👤 Author: ${data.author || "Unknown"}\n` +
+        `⏱ Duration: ${data.runtime}s`;
 
-    // ====== STEP 1: SELECT SONG ======
-    if (pendingSearch[sender]) {
-        const index = parseInt(body.trim()) - 1;
-        const data = pendingSearch[sender][index];
-
-        if (!data) {
-            return conn.sendMessage(from, { text: "❌ Invalid number" }, { quoted: mek });
-        }
-
-        delete pendingSearch[sender];
-        pendingType[sender] = data;
-
-        return conn.sendMessage(from, {
-            text: `🎧 *Choose Download Type*\n\n1️⃣ Audio\n2️⃣ Video\n\nReply 1 or 2`
-        }, { quoted: mek });
+      await bot.sendMessage(
+        from,
+        {
+          video: { url: data.no_watermark },
+          caption,
+        },
+        { quoted: mek }
+      );
+    } catch (e) {
+      console.log("TIKTOK ERROR:", e);
+      reply("❌ Error while downloading TikTok video");
     }
-
-    // ====== STEP 2: SELECT TYPE ======
-    if (pendingType[sender]) {
-        const choice = body.trim();
-        const info = pendingType[sender];
-        delete pendingType[sender];
-
-        if (choice === "1") {
-            // AUDIO
-            const audio = ytdl(info.url, {
-                filter: "audioonly",
-                quality: "highestaudio"
-            });
-
-            return conn.sendMessage(from, {
-                audio: audio,
-                mimetype: "audio/mp4",
-                fileName: `${info.title}.mp3`
-            }, { quoted: mek });
-
-        } else if (choice === "2") {
-            // VIDEO
-            const video = ytdl(info.url, {
-                filter: "audioandvideo",
-                quality: "highest"
-            });
-
-            return conn.sendMessage(from, {
-                video: video,
-                mimetype: "video/mp4",
-                fileName: `${info.title}.mp4`
-            }, { quoted: mek });
-
-        } else {
-            return conn.sendMessage(from, { text: "❌ Invalid option" }, { quoted: mek });
-        }
-    }
-});
- 
+  }
+);
