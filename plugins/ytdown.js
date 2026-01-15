@@ -1,171 +1,146 @@
+const {cmd , commands} = require('../command')
+const yts = require('yt-search');
+const fg = require('api-dylux');
 
-const { cmd } = require("../command");
-const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore");
-const yts = require("yt-search");
-
-
-async function getYoutube(query) {
-  const isUrl = /(youtube\.com|youtu\.be)/i.test(query);
-  if (isUrl) {
-    const id = query.split("v=")[1] || query.split("/").pop();
-    const info = await yts({ videoId: id });
-    return info;
-  }
-
-  const search = await yts(query);
-  if (!search.videos.length) return null;
-  return search.videos[0];
-}
-
-
-cmd(
-  {
-    pattern: "ytmp3",
-    alias: ["mp3", "song"],
-    desc: "Download YouTube MP3 by name or link",
-    category: "download",
-    filename: __filename,
-  },
-  async (bot, mek, m, { from, q, reply }) => {
+// -------- Song Download --------
+cmd({
+    pattern: 'song',
+    desc: 'download songs',
+    react: "🎶",
+    category: 'download',
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply }) => {
     try {
-      if (!q) return reply("🎵 Send song name or YouTube link");
+        if (!q) return reply('*Please enter a query or a url !*');
 
-      reply("🔎 Searching YouTube...");
-      const video = await getYoutube(q);
-      if (!video) return reply("❌ No results found");
+        const search = await yts(q);
+        const data = search.videos[0];
+        const url = data.url;
 
-      const caption =
-        `🎵 *${video.title}*\n\n` +
-        `👤 Channel: ${video.author.name}\n` +
-        `⏱ Duration: ${video.timestamp}\n` +
-        `👀 Views: ${video.views.toLocaleString()}\n` +
-        `🔗 ${video.url}`;
+        let desc = `*🎼 SAHAS-MD SONG DOWNLOADER . .⚙️*
 
-      await bot.sendMessage(
-        from,
-        {
-          image: { url: video.thumbnail },
-          caption,
-        },
-        { quoted: mek }
-      );
+🎼⚙️ TITLE - ${data.title}
 
-      reply("⬇️ Downloading MP3...");
+🎼⚙️ VIEWS - ${data.views}
 
-      const data = await ytmp3(video.url);
-      if (!data?.url) return reply("❌ Failed to download MP3");
+🎼⚙️ DESCRIPTION - ${data.description}
 
-      await bot.sendMessage(
-        from,
-        {
-          audio: { url: data.url },
-          mimetype: "audio/mpeg",
-        },
-        { quoted: mek }
-      );
+🎼⚙️ TIME - ${data.timestamp}
+
+🎼⚙️ AGO - ${data.ago}
+
+*Reply This Message With Option*
+
+*1 Audio With Normal Format*
+*2 Audio With Document Format*
+
+> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*`;
+
+        const vv = await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: desc }, { quoted: mek });
+
+        conn.ev.on('messages.upsert', async (msgUpdate) => {
+            const msg = msgUpdate.messages[0];
+            if (!msg.message || !msg.message.extendedTextMessage) return;
+
+            const selectedOption = msg.message.extendedTextMessage.text.trim();
+
+            if (msg.message.extendedTextMessage.contextInfo && msg.message.extendedTextMessage.contextInfo.stanzaId === vv.key.id) {
+                switch (selectedOption) {
+                    case '1':
+                        let down = await fg.yta(url);
+                        let downloadUrl = down.dl_url;
+                        await conn.sendMessage(from, { audio: { url:downloadUrl }, caption: '> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*', mimetype: 'audio/mpeg'},{ quoted: mek });
+                        break;
+                    case '2':               
+                        // Send Document File
+                        let downdoc = await fg.yta(url);
+                        let downloaddocUrl = downdoc.dl_url;
+                        await conn.sendMessage(from, { document: { url:downloaddocUrl }, caption: '> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*', mimetype: 'audio/mpeg', fileName:data.title + ".mp3"}, { quoted: mek });
+                        await conn.sendMessage(from, { react: { text: '✅', key: mek.key } })
+                        break;
+                    default:
+                        reply("Invalid option. Please select a valid option🔴");
+                }
+
+            }
+        });
+
     } catch (e) {
-      console.log("YTMP3 ERROR:", e);
-      reply("❌ Error while downloading MP3");
+        console.error(e);
+        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } })
+        reply('An error occurred while processing your request.');
     }
-  }
-);
+});
 
-cmd(
-  {
-    pattern: "ytmp4",
-    alias: ["mp4", "video"],
-    desc: "Download YouTube MP4 by name or link",
-    category: "download",
-    filename: __filename,
-  },
-  async (bot, mek, m, { from, q, reply }) => {
+
+//==================== Video downloader =========================
+
+cmd({
+    pattern: 'video',
+    desc: 'download videos',
+    react: "📽️",
+    category: 'download',
+    filename: __filename
+},
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply }) => {
     try {
-      if (!q) return reply("🎬 Send video name or YouTube link");
+        if (!q) return reply('*Please enter a query or a url !*');
 
-      reply("🔎 Searching YouTube...");
-      const video = await getYoutube(q);
-      if (!video) return reply("❌ No results found");
+        const search = await yts(q);
+        const data = search.videos[0];
+        const url = data.url;
 
-      const caption =
-        `🎬 *${video.title}*\n\n` +
-        `👤 Channel: ${video.author.name}\n` +
-        `⏱ Duration: ${video.timestamp}\n` +
-        `👀 Views: ${video.views.toLocaleString()}\n` +
-        `📅 Uploaded: ${video.ago}\n` +
-        `🔗 ${video.url}`;
+        let desc = `*📽️ SAHAS-MD VIDEO DOWNLOADER . .⚙️*
 
-      await bot.sendMessage(
-        from,
-        {
-          image: { url: video.thumbnail },
-          caption,
-        },
-        { quoted: mek }
-      );
+📽️⚙️ TITLE - ${data.title}
 
-      reply("⬇️ Downloading video...");
+📽️⚙️ VIEWS - ${data.views}
 
-      const data = await ytmp4(video.url, {
-        format: "mp4",
-        videoQuality: "720",
-      });
+📽️⚙️ DESCRIPTION - ${data.description}
 
-      if (!data?.url) return reply("❌ Failed to download video");
+📽️⚙️ TIME - ${data.timestamp}
 
-await bot.sendMessage(
-  from,
-  {
-    video: { url: data.url },
-    mimetype: "video/mp4",
-    fileName: data.filename || "youtube_video.mp4",
-    caption: "🎬> ©𝙳𝚎𝚟𝚎𝚕𝚘𝚙𝚎𝚛 𝚋𝚢 𝙸𝚂𝙷𝙰𝙽-𝚇",
-    gifPlayback: false,
-  },
-  { quoted: mek }
-);
+📽️⚙️ AGO - ${data.ago}
+
+*Reply This Message With Option*
+
+*1 Video With Normal Format*
+*2 Video With Document Format*
+
+> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*`;
+
+        const vv = await conn.sendMessage(from, { image: { url: data.thumbnail }, caption: desc }, { quoted: mek });
+
+        conn.ev.on('messages.upsert', async (msgUpdate) => {
+            const msg = msgUpdate.messages[0];
+            if (!msg.message || !msg.message.extendedTextMessage) return;
+
+            const selectedOption = msg.message.extendedTextMessage.text.trim();
+
+            if (msg.message.extendedTextMessage.contextInfo && msg.message.extendedTextMessage.contextInfo.stanzaId === vv.key.id) {
+                switch (selectedOption) {
+                    case '1':
+                        let downvid = await fg.ytv(url);
+                        let downloadvUrl = downvid.dl_url;
+                        await conn.sendMessage(from, { video : { url:downloadvUrl }, caption: '> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*', mimetype: 'video/mp4'},{ quoted: mek });
+                        break;
+                    case '2':
+                        let downviddoc = await fg.ytv(url);
+                        let downloadvdocUrl = downviddoc.dl_url;
+                        await conn.sendMessage(from, { document: { url:downloadvdocUrl }, caption: '> *©ᴘᴏᴡᴇʀᴇᴅ ʙʏ ꜱᴀʜᴀꜱ ᴛᴇᴄʜ*', mimetype: 'video/mp4', fileName:data.title + ".mp4" }, { quoted: mek });
+                        break;
+                    default:
+                        reply("Invalid option. Please select a valid option🔴");
+                }
+
+            }
+        });
+
     } catch (e) {
-      console.log("YTMP4 ERROR:", e);
-      reply("❌ Error while downloading video");
+        console.error(e);
+        await conn.sendMessage(from, { react: { text: '❌', key: mek.key } })
+        reply('An error occurred while processing your request.');
     }
-  }
-);
-
-
-cmd(
-  {
-    pattern: "tiktok",
-    alias: ["tt"],
-    desc: "Download TikTok video",
-    category: "download",
-    filename: __filename,
-  },
-  async (bot, mek, m, { from, q, reply }) => {
-    try {
-      if (!q) return reply("📱 Send TikTok link");
-
-      reply("⬇️ Downloading TikTok video...");
-
-      const data = await tiktok(q);
-      if (!data?.no_watermark)
-        return reply("❌ Failed to download TikTok video");
-
-      const caption =
-        `🎵 *${data.title || "TikTok Video"}*\n\n` +
-        `👤 Author: ${data.author || "Unknown"}\n` +
-        `⏱ Duration: ${data.runtime}s`;
-
-      await bot.sendMessage(
-        from,
-        {
-          video: { url: data.no_watermark },
-          caption,
-        },
-        { quoted: mek }
-      );
-    } catch (e) {
-      console.log("TIKTOK ERROR:", e);
-      reply("❌ Error while downloading TikTok video");
-    }
-  }
-);
-
+});
+ 
