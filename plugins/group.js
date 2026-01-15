@@ -21,7 +21,7 @@ cmd({
   desc: "Kick user from group",
   category: "group",
   filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants, quoted, args }) => {
+}, async (ishan, mek, m, { isGroup, isAdmins, reply, participants, quoted, args }) => {
   if (!isGroup || !isAdmins) 
     return reply("*Group only & both you and I must be admins.*");
 
@@ -32,7 +32,7 @@ cmd({
   if (groupAdmins.includes(target)) 
     return reply("*I can't kick an admin.*");
 
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "remove");
+  await ishan.groupParticipantsUpdate(m.chat, [target], "remove");
   return reply(`*Kicked:* @${target.split("@")[0]}`, { mentions: [target] });
 });
 
@@ -42,7 +42,7 @@ cmd({
   desc: "Tag all group members",
   category: "group",
   filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants }) => {
+}, async (ishan, mek, m, { isGroup, isAdmins, reply, participants }) => {
   if (!isGroup) return reply("*This command can only be used in groups.*");
   if (!isAdmins) return reply("*Only group admins can use this command.*");
 
@@ -74,7 +74,7 @@ cmd({
   desc: "Set group profile picture",
   category: "group",
   filename: __filename
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, participants, args, quoted }) => {
+}, async (ishan, mek, m, { isGroup, isAdmins, reply, participants, args, quoted }) => {
   if (!isGroup) return reply("❌ This command can only be used in groups!");
   if (!isAdmins) return reply("❌ You must be a group admin to use this command!");
 
@@ -82,7 +82,7 @@ cmd({
 
   try {
     const media = await downloadMediaMessage(quoted, 'buffer');
-    await danuwa.updateProfilePicture(m.chat, media);
+    await ishan.updateProfilePicture(m.chat, media);
     reply("✅ Group profile picture updated!");
   } catch (e) {
     console.error("❌ Error downloading image:", e);
@@ -96,7 +96,7 @@ cmd({
   desc: "List all group admins",
   category: "group",
   filename: __filename,
-}, async (danuwa, mek, m, { isGroup, reply, participants }) => {
+}, async (ishan, mek, m, { isGroup, reply, participants }) => {
   if (!isGroup) return reply("*This command is for groups only.*");
 
   const admins = participants.filter(p => p.admin).map(p => `@${p.id.split("@")[0]}`).join("\n");
@@ -112,7 +112,7 @@ cmd({
     category: "group",
     filename: __filename
 },
-async (danuwa, mek, m, { from, isGroup, isAdmins, reply, args }) => {
+async (ishan, mek, m, { from, isGroup, isAdmins, reply, args }) => {
     try {
         if (!isGroup) return reply("⚠️ This command can only be used in a group!");
 
@@ -122,7 +122,7 @@ async (danuwa, mek, m, { from, isGroup, isAdmins, reply, args }) => {
 
         const target = args[0].includes("@") ? args[0] : `${args[0]}@s.whatsapp.net`;
 
-        await danuwa.groupParticipantsUpdate(from, [target], "add");
+        await ishan.groupParticipantsUpdate(from, [target], "add");
 
         return reply(`✅ Successfully added: @${target.split('@')[0]}`);
     } catch (e) {
@@ -138,14 +138,14 @@ cmd({
   desc: "Promote user to admin",
   category: "group",
   filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
+}, async (ishan, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
   if (!isGroup || !isAdmins) 
     return reply("*Group only & both you and I must be admins.*");
 
   const target = getTargetUser(mek, quoted, args);
   if (!target) return reply("*Mention or reply to a user to promote.*");
 
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "promote");
+  await ishan.groupParticipantsUpdate(m.chat, [target], "promote");
   return reply(`*Promoted:* @${target.split("@")[0]}`, { mentions: [target] });
 });
 
@@ -155,14 +155,14 @@ cmd({
   desc: "Demote admin to member",
   category: "group",
   filename: __filename,
-}, async (danuwa, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
+}, async (ishan, mek, m, { isGroup, isAdmins, reply, quoted, args }) => {
   if (!isGroup || !isAdmins) 
     return reply("*Group only & both you and I must be admins.*");
 
   const target = getTargetUser(mek, quoted, args);
   if (!target) return reply("*Mention or reply to a user to demote.*");
 
-  await danuwa.groupParticipantsUpdate(m.chat, [target], "demote");
+  await ishan.groupParticipantsUpdate(m.chat, [target], "demote");
   return reply(`*Demoted:* @${target.split("@")[0]}`, { mentions: [target] });
 });
 
