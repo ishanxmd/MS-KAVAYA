@@ -1,129 +1,169 @@
 const { cmd } = require("../command");
-const { ytmp3 } = require("sadaslk-dlcore");
+const { ytmp3, ytmp4, tiktok } = require("sadaslk-dlcore");
 const yts = require("yt-search");
 
-let songCache = {};
 
 async function getYoutube(query) {
   const isUrl = /(youtube\.com|youtu\.be)/i.test(query);
   if (isUrl) {
     const id = query.split("v=")[1] || query.split("/").pop();
-    return await yts({ videoId: id });
+    const info = await yts({ videoId: id });
+    return info;
   }
+
   const search = await yts(query);
+  if (!search.videos.length) return null;
   return search.videos[0];
 }
 
-/* ================= SONG SEARCH ================= */
 
 cmd(
   {
     pattern: "ytmp3",
-    alias: ["song", "mp3"],
-    desc: "Song downloader with format select",
+    alias: ["mp3", "song"],
+    desc: "Download YouTube MP3 by name or link",
     category: "download",
     filename: __filename,
   },
   async (bot, mek, m, { from, q, reply }) => {
-    if (!q) return reply("🎵 Song name or YouTube link එකක් දාන්න");
+    try {
+      if (!q) return reply("🎵 Send song name or YouTube link");
 
-    reply("🔎 Searching...");
-    const video = await getYoutube(q);
-    if (!video) return reply("❌ Song හමු නොවුණා");
+      reply("🔎 Searching YouTube...");
+      const video = await getYoutube(q);
+      if (!video) return reply("❌ No results found");
 
-    songCache[from] = video;
+      const caption =
+        `🎵 *${video.title}*\n\n` +
+        `👤 Channel: ${video.author.name}\n` +
+        `⏱ Duration: ${video.timestamp}\n` +
+        `👀 Views: ${video.views.toLocaleString()}\n` +
+        `🔗 ${video.url}`;
 
-    const caption =
-      `🎧 *AUDIO DOWNLOADER*\n\n` +
-      `🎵 *Title:* ${video.title}\n` +
-      `⏱ *Duration:* ${video.timestamp}\n` +
-      `👁 *Views:* ${video.views.toLocaleString()}\n` +
-      `📅 *Release:* ${video.ago}\n\n` +
-      `⬇️ Select download format below`;
-
-    const listMessage = {
-      image: { url: video.thumbnail },
-      caption,
-      footer: "© ISHAN-X",
-      title: "Select Format",
-      buttonText: "Select Format",
-      sections: [
-        {
-          title: "Available Formats",
-          rows: [
-            {
-              title: "🎧 Audio File",
-              description: "Download as MP3 audio",
-              rowId: "song_audio",
-            },
-            {
-              title: "📁 Document File",
-              description: "Download as document",
-              rowId: "song_doc",
-            },
-            {
-              title: "🎤 Voice Note",
-              description: "Download as voice note",
-              rowId: "song_vn",
-            },
-          ],
-        },
-      ],
-    };
-
-    await bot.sendMessage(from, listMessage, { quoted: mek });
-  }
-);
-
-/* ================= LIST RESPONSE HANDLER ================= */
-
-cmd(
-  {
-    on: "list-response",
-    filename: __filename,
-  },
-  async (bot, mek, m, { from, reply }) => {
-    if (!songCache[from]) return;
-
-    const id = m.message.listResponseMessage.singleSelectReply.selectedRowId;
-    const video = songCache[from];
-
-    reply("⬇️ Downloading...");
-    const data = await ytmp3(video.url);
-    if (!data?.url) return reply("❌ Download failed");
-
-    if (id === "song_audio") {
-      await bot.sendMessage(
-        from,
-        { audio: { url: data.url }, mimetype: "audio/mpeg" },
-        { quoted: mek }
-      );
-    }
-
-    if (id === "song_doc") {
       await bot.sendMessage(
         from,
         {
-          document: { url: data.url },
-          mimetype: "audio/mpeg",
-          fileName: `${video.title}.mp3`,
+          image: { url: video.thumbnail },
+          caption,
         },
         { quoted: mek }
       );
-    }
 
-    if (id === "song_vn") {
+      reply("⬇️ Downloading MP3...");
+
+      const data = await ytmp3(video.url);
+      if (!data?.url) return reply("❌ Failed to download MP3");
+
       await bot.sendMessage(
         from,
         {
           audio: { url: data.url },
           mimetype: "audio/mpeg",
-          ptt: true,
         },
         { quoted: mek }
       );
+    } catch (e) {
+      console.log("YTMP3 ERROR:", e);
+      reply("❌ Error while downloading MP3");
     }
+  }
+);
 
-    delete songCache[from];
+cmd(
+  {
+    pattern: "ytmp4",
+    alias: ["mp4", "video"],
+    desc: "Download YouTube MP4 by name or link",
+    category: "download",
+    filename: __filename,
+  },
+  async (bot, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("🎬 Send video name or YouTube link");
+
+      reply("🔎 Searching YouTube...");
+      const video = await getYoutube(q);
+      if (!video) return reply("❌ No results found");
+
+      const caption =
+        `🎬 *${video.title}*\n\n` +
+        `👤 Channel: ${video.author.name}\n` +
+        `⏱ Duration: ${video.timestamp}\n` +
+        `👀 Views: ${video.views.toLocaleString()}\n` +
+        `📅 Uploaded: ${video.ago}\n` +
+        `🔗 ${video.url}`;
+
+      await bot.sendMessage(
+        from,
+        {
+          image: { url: video.thumbnail },
+          caption,
+        },
+        { quoted: mek }
+      );
+
+      reply("⬇️ Downloading video...");
+
+      const data = await ytmp4(video.url, {
+        format: "mp4",
+        videoQuality: "720",
+      });
+
+      if (!data?.url) return reply("❌ Failed to download video");
+
+await bot.sendMessage(
+  from,
+  {
+    video: { url: data.url },
+    mimetype: "video/mp4",
+    fileName: data.filename || "youtube_video.mp4",
+    caption: "🎬> ©𝙳𝚎𝚟𝚎𝚕𝚘𝚙𝚎𝚛 𝚋𝚢 𝙸𝚂𝙷𝙰𝙽-𝚇",
+    gifPlayback: false,
+  },
+  { quoted: mek }
+);
+    } catch (e) {
+      console.log("YTMP4 ERROR:", e);
+      reply("❌ Error while downloading video");
+    }
+  }
+);
+
+
+cmd(
+  {
+    pattern: "tiktok",
+    alias: ["tt"],
+    desc: "Download TikTok video",
+    category: "download",
+    filename: __filename,
+  },
+  async (bot, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("📱 Send TikTok link");
+
+      reply("⬇️ Downloading TikTok video...");
+
+      const data = await tiktok(q);
+      if (!data?.no_watermark)
+        return reply("❌ Failed to download TikTok video");
+
+      const caption =
+        `🎵 *${data.title || "TikTok Video"}*\n\n` +
+        `👤 Author: ${data.author || "Unknown"}\n` +
+        `⏱ Duration: ${data.runtime}s`;
+
+      await bot.sendMessage(
+        from,
+        {
+          video: { url: data.no_watermark },
+          caption,
+        },
+        { quoted: mek }
+      );
+    } catch (e) {
+      console.log("TIKTOK ERROR:", e);
+      reply("❌ Error while downloading TikTok video");
+    }
   }
 );
