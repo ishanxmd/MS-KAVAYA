@@ -1,46 +1,27 @@
-case 'ping': {
-    const ownerNumber = ['94785457011']; // 👈 ඔයාගේ number (country code එක්ක)
-    const botName = 'ISHAN-X MD';
-    const botVersion = 'v1.0.0';
+const { cmd } = require('../command');
 
-    // Owner only check
-    if (!ownerNumber.includes(sender.split('@')[0])) {
-        return sock.sendMessage(from, {
-            text: '❌ This command is Owner Only!'
-        });
-    }
+cmd({
+    pattern: "ping",
+    desc: "Check bot speed & status",
+    react: "🏓",
+    category: "fun",
+    filename: __filename
+}, async (conn, m, store, { reply }) => {
+    const start = Date.now();
 
-    // React emoji
-    await sock.sendMessage(from, {
-        react: {
-            text: '🏓',
-            key: mek.key
-        }
-    });
+    const uptime = process.uptime();
+    const hours = Math.floor(uptime / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
 
-    // Speed
-    const speed = Date.now() - mek.messageTimestamp * 1000;
+    const end = Date.now();
+    const speed = end - start;
 
-    // Uptime
-    const uptimeSec = process.uptime();
-    const hours = Math.floor(uptimeSec / 3600);
-    const minutes = Math.floor((uptimeSec % 3600) / 60);
-    const seconds = Math.floor(uptimeSec % 60);
+    reply(
+`🏓 *PONG!*
 
-    const uptime = `${hours}h ${minutes}m ${seconds}s`;
-
-    // Message
-    const pingMsg = `
-🏓 *PONG!*
-
-⚡ *Speed:* ${speed} ms
-🤖 *Bot:* ${botName}
-📦 *Version:* ${botVersion}
-⏱ *Uptime:* ${uptime}
-
-✅ *Status:* Online & Stable
-`;
-
-    await sock.sendMessage(from, { text: pingMsg });
-}
-break;
+⚡ Speed : *${speed} ms*
+⏱ Uptime : *${hours}h ${minutes}m ${seconds}s*
+🤖 Status : *Online & Working* ✅`
+    );
+});
