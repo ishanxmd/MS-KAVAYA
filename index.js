@@ -14,7 +14,8 @@ const {
   MessageRetryMap,
   generateForwardMessageContent,
   generateWAMessageFromContent,
-  generateMessageID, makeInMemoryStore,
+  generateMessageID,
+  makeInMemoryStore,
   jidDecode,
   fetchLatestBaileysVersion,
   Browsers
@@ -39,7 +40,7 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 const prefix = '.';
-const ownerNumber = ['94726880784'];
+const ownerNumber = ['94761638379'];
 const credsPath = path.join(__dirname, '/auth_info_baileys/creds.json');
 
 async function ensureSessionFile() {
@@ -51,41 +52,36 @@ async function ensureSessionFile() {
 
     console.log("🔄 creds.json not found. Downloading session from MEGA...");
 
-    const sessdata = config.SESSION_ID;
-    const filer = File.fromURL(`https://mega.nz/file/${sessdata}`);
+    const filer = File.fromURL(`https://mega.nz/file/${config.SESSION_ID}`);
 
     filer.download((err, data) => {
       if (err) {
-        console.error("❌ Failed to download session file from MEGA:", err);
+        console.error("❌ Failed to download session file:", err);
         process.exit(1);
       }
 
       fs.mkdirSync(path.join(__dirname, '/auth_info_baileys/'), { recursive: true });
       fs.writeFileSync(credsPath, data);
-      console.log("✅ Session downloaded and saved. Restarting bot...");
-      setTimeout(() => {
-        connectToWA();
-      }, 2000);
+      console.log("✅ Session downloaded. Restarting bot...");
+      setTimeout(connectToWA, 2000);
     });
   } else {
-    setTimeout(() => {
-      connectToWA();
-    }, 1000);
+    setTimeout(connectToWA, 1000);
   }
 }
-
-
 
 const antiDeletePlugin = require('./plugins/antidelete.js');
 global.pluginHooks = global.pluginHooks || [];
 global.pluginHooks.push(antiDeletePlugin);
 
 async function connectToWA() {
-  console.log("Connecting  𝐊𝐢𝐧𝐠 𝐑𝐀𝐍𝐔𝐗 ᴾʳᵒ 👑");
-  const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '/auth_info_baileys/'));
+  console.log("Connecting 👑 ISHAN BOT");
+  const { state, saveCreds } = await useMultiFileAuthState(
+    path.join(__dirname, '/auth_info_baileys/')
+  );
   const { version } = await fetchLatestBaileysVersion();
 
-  const ranuxPro = makeWASocket({
+  const ishan = makeWASocket({
     logger: P({ level: 'silent' }),
     printQRInTerminal: false,
     browser: Browsers.macOS("Firefox"),
@@ -96,206 +92,104 @@ async function connectToWA() {
     generateHighQualityLinkPreview: true,
   });
 
-  ranuxPro.ev.on('connection.update', async (update) => {
+  ishan.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
+
     if (connection === 'close') {
       if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
         connectToWA();
       }
     } else if (connection === 'open') {
-      console.log('✅ 𝐊𝐢𝐧𝐠 𝐑𝐀𝐍𝐔𝐗 ᴾʳᵒ connected to WhatsApp');
+      console.log('✅ ISHAN BOT CONNECTED');
 
-      const up = `👑 King RANUX PRO ONLINE ✅
-⚙️ Stable Mode
-🚀 Production
-
-> 𝓜𝓪𝓭𝓮 𝓑𝔂 𝓜𝓡. 𝓡𝓪𝓷𝓼𝓪𝓻𝓪 𝓓𝓮𝓿𝓷𝓪𝓽𝓱`;
-      await ranuxPro.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-        image: { url: `https://raw.githubusercontent.com/ransara-devnath-ofc/-Bot-Accent-/refs/heads/main/King%20RANUX%20PRO%20Bot%20Images/king-ranux-pro-main-logo.png` },
-        caption: up
+      await ishan.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+        image: {
+          url: "https://files.catbox.moe/d0z6ym.JPG"
+        },
+        caption: "👑 ISHAN BOT ONLINE ✅"
       });
 
-      fs.readdirSync("./plugins/").forEach((plugin) => {
-        if (path.extname(plugin).toLowerCase() === ".js") {
-          require(`./plugins/${plugin}`);
-        }
-      });
+      fs.readdirSync("./plugins/")
+        .filter(p => p.endsWith(".js"))
+        .forEach(p => require(`./plugins/${p}`));
     }
   });
 
-  ranuxPro.ev.on('creds.update', saveCreds);
+  ishan.ev.on('creds.update', saveCreds);
 
-  ranuxPro.ev.on('messages.upsert', async ({ messages }) => {
-    for (const msg of messages) {
-      if (msg.messageStubType === 68) {
-        await ranuxPro.sendMessageAck(msg.key);
-      }
-    }
-
+  ishan.ev.on('messages.upsert', async ({ messages }) => {
     const mek = messages[0];
-    if (!mek || !mek.message) return;
+    if (!mek?.message) return;
 
-    mek.message = getContentType(mek.message) === 'ephemeralMessage' ? mek.message.ephemeralMessage.message : mek.message;
-    
-if (mek.key?.remoteJid === 'status@broadcast') {
-  const senderJid = mek.key.participant || mek.key.remoteJid || "unknown@s.whatsapp.net";
-  const mentionJid = senderJid.includes("@s.whatsapp.net") ? senderJid : senderJid + "@s.whatsapp.net";
+    mek.message =
+      getContentType(mek.message) === 'ephemeralMessage'
+        ? mek.message.ephemeralMessage.message
+        : mek.message;
 
-  if (config.AUTO_STATUS_SEEN === "true") {
-    try {
-      await conn.readMessages([mek.key]);
-      console.log(`[✓] Status seen: ${mek.key.id}`);
-    } catch (e) {
-      console.error("❌ Failed to mark status as seen:", e);
-    }
-  }
-
-  if (config.AUTO_STATUS_REACT === "true" && mek.key.participant) {
-    try {
-      const emojis = ['❤️', '💸', '😇', '🍂', '💥', '💯', '🔥', '💫', '💎', '💗', '🤍', '🖤', '👀', '🙌', '🙆', '🚩', '🥰', '💐', '😎', '🤎', '✅', '🫀', '🧡', '😁', '😄', '🌸', '🕊️', '🌷', '⛅', '🌟', '🗿', '💜', '💙', '🌝', '🖤', '💚'];
-      const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-
-      await conn.sendMessage(mek.key.participant, {
-        react: {
-          text: randomEmoji,
-          key: mek.key,
-        }
-      });
-
-      console.log(`[✓] Reacted to status of ${mek.key.participant} with ${randomEmoji}`);
-    } catch (e) {
-      console.error("❌ Failed to react to status:", e);
-    }
-  }
-
-  if (mek.message?.extendedTextMessage && !mek.message.imageMessage && !mek.message.videoMessage) {
-    const text = mek.message.extendedTextMessage.text || "";
-    if (text.trim().length > 0) {
-      try {
-        await conn.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-          text: `📝 *Text Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${text}`,
-          mentions: [mentionJid]
-        });
-        console.log(`✅ Text-only status from ${mentionJid} forwarded.`);
-      } catch (e) {
-        console.error("❌ Failed to forward text status:", e);
-      }
-    }
-  }
-
-  if (mek.message?.imageMessage || mek.message?.videoMessage) {
-    try {
-      const msgType = mek.message.imageMessage ? "imageMessage" : "videoMessage";
-      const mediaMsg = mek.message[msgType];
-
-      const stream = await downloadContentFromMessage(
-        mediaMsg,
-        msgType === "imageMessage" ? "image" : "video"
-      );
-
-      let buffer = Buffer.from([]);
-      for await (const chunk of stream) {
-        buffer = Buffer.concat([buffer, chunk]);
-      }
-
-      const mimetype = mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4");
-      const captionText = mediaMsg.caption || "";
-
-      await conn.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
-        [msgType === "imageMessage" ? "image" : "video"]: buffer,
-        mimetype,
-        caption: `📥 *Forwarded Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${captionText}`,
-        mentions: [mentionJid]
-      });
-
-      console.log(`✅ Media status from ${mentionJid} forwarded.`);
-    } catch (err) {
-      console.error("❌ Failed to download or forward media status:", err);
-    }
-  }
-}
-    
-
-    const m = sms(ranuxPro, mek);
+    const m = sms(ishan, mek);
     const type = getContentType(mek.message);
     const from = mek.key.remoteJid;
-    const body = type === 'conversation' ? mek.message.conversation : mek.message[type]?.text || mek.message[type]?.caption || '';
+    const body =
+      mek.message.conversation ||
+      mek.message[type]?.text ||
+      mek.message[type]?.caption ||
+      '';
+
     const isCmd = body.startsWith(prefix);
-    const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
+    const commandName = isCmd
+      ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase()
+      : '';
+
     const args = body.trim().split(/ +/).slice(1);
     const q = args.join(' ');
 
-    const sender = mek.key.fromMe ? ranuxPro.user.id : (mek.key.participant || mek.key.remoteJid);
+    const sender = mek.key.fromMe
+      ? ishan.user.id
+      : (mek.key.participant || mek.key.remoteJid);
+
     const senderNumber = sender.split('@')[0];
     const isGroup = from.endsWith('@g.us');
-    const botNumber = ranuxPro.user.id.split(':')[0];
-    const pushname = mek.pushName || 'Sin Nombre';
-    const isMe = botNumber.includes(senderNumber);
-    const isOwner = ownerNumber.includes(senderNumber) || isMe;
-    const botNumber2 = await jidNormalizedUser(ranuxPro.user.id);
+    const botNumber = ishan.user.id.split(':')[0];
+    const botNumber2 = await jidNormalizedUser(ishan.user.id);
 
-    const groupMetadata = isGroup ? await ranuxPro.groupMetadata(from).catch(() => {}) : '';
-    const groupName = isGroup ? groupMetadata.subject : '';
-    const participants = isGroup ? groupMetadata.participants : '';
-    const groupAdmins = isGroup ? await getGroupAdmins(participants) : '';
-    const isBotAdmins = isGroup ? groupAdmins.includes(botNumber2) : false;
-    const isAdmins = isGroup ? groupAdmins.includes(sender) : false;
-
-    const reply = (text) => ranuxPro.sendMessage(from, { text }, { quoted: mek });
+    const reply = (text) =>
+      ishan.sendMessage(from, { text }, { quoted: mek });
 
     if (isCmd) {
-      const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+      const cmd = commands.find(
+        c => c.pattern === commandName || c.alias?.includes(commandName)
+      );
       if (cmd) {
-        if (cmd.react) ranuxPro.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
-        try {
-          cmd.function(ranuxPro, mek, m, {
-            from, quoted: mek, body, isCmd, command: commandName, args, q,
-            isGroup, sender, senderNumber, botNumber2, botNumber, pushname,
-            isMe, isOwner, groupMetadata, groupName, participants, groupAdmins,
-            isBotAdmins, isAdmins, reply,
+        if (cmd.react) {
+          await ishan.sendMessage(from, {
+            react: { text: cmd.react, key: mek.key }
           });
-        } catch (e) {
-          console.error("[PLUGIN ERROR]", e);
         }
-      }
-    }
-
-    const replyText = body;
-    for (const handler of replyHandlers) {
-      if (handler.filter(replyText, { sender, message: mek })) {
-        try {
-          await handler.function(ranuxPro, mek, m, {
-            from, quoted: mek, body: replyText, sender, reply,
-          });
-          break;
-        } catch (e) {
-          console.log("Reply handler error:", e);
-        }
+        cmd.function(ishan, mek, m, {
+          from, quoted: mek, body, isCmd,
+          command: commandName, args, q,
+          isGroup, sender, senderNumber,
+          botNumber, botNumber2, reply
+        });
       }
     }
   });
 
-  
-  conn.ev.on('messages.update', async (updates) => {
-    if (global.pluginHooks) {
-      for (const plugin of global.pluginHooks) {
-        if (plugin.onDelete) {
-          try {
-            await plugin.onDelete(conn, updates);
-          } catch (e) {
-            console.log("onDelete error:", e);
-          }
-        }
+  ishan.ev.on('messages.update', async (updates) => {
+    for (const plugin of global.pluginHooks) {
+      if (plugin.onDelete) {
+        await plugin.onDelete(ishan, updates);
       }
     }
   });
 }
-
 
 ensureSessionFile();
 
 app.get("/", (req, res) => {
-  res.send("Hey, 👑 𝐊𝐢𝐧𝐠 𝐑𝐀𝐍𝐔𝐗 ᴾʳᵒ started✅");
+  res.send("👑 ISHAN BOT STARTED ✅");
 });
 
-app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
+app.listen(port, () =>
+  console.log(`Server running on http://localhost:${port}`)
+);
